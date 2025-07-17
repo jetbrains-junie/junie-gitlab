@@ -1,1 +1,3 @@
-# junie-gitlab
+# Junie GitLab Application
+
+
