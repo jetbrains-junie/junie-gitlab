@@ -23,6 +23,7 @@
 
 ## GitLab configuration
 1. Issue access token (`Project > Settings > Access token` or `User settings > Access tokens`)
+   - Call the token `junie` to have autocompletion in the UI.
 2. Configure a webhook on the GitLab side:
    - Go to Project > Settings > CI/CD > `Add new webhook`
    - Set URL pointing on your local (using reverse proxy, e.g. ngrok) or remote junie-gitlab instance: `https://HOST/api/public/gitlab/webhooks`
