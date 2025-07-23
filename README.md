@@ -10,6 +10,7 @@
    ```
    docker run -d \
      -e INGRAZZIO_TOKEN=your_token_here \
+     -e GITLAB_HOST=gitlab_host \
      -p 8080:8080 \
      registry.jetbrains.team/p/matterhorn/public/junie-gitlab:latest
    ```
@@ -17,6 +18,7 @@
 
 ## Configuration
 - `INGRAZZIO_TOKEN`: (Required) Your authentication token for the JetBrains Auth service
+- `GITLAB_HOST`: (Required) Your organization's GitLab host (e.g., `https://gitlab.com`)
 
 ## Repository preparation
 1. Copy the file `.gitlab-ci.yml` to your project in GitLab
