@@ -19,6 +19,7 @@
 ## Configuration
 - `INGRAZZIO_TOKEN`: (Required) Your authentication token for the JetBrains Auth service
 - `GITLAB_HOST`: (Required) Your organization's GitLab host (e.g., `https://gitlab.com`)
+- `GITLAB_IGNORE_CERTIFICATE_ERRORS`: (Optional) Set to `true` to ignore SSL certificate errors when connecting to GitLab. Default is `false`.
 
 ## Repository preparation
 1. Copy the file `.gitlab-ci.yml` to your project in GitLab
