@@ -37,7 +37,7 @@ run_junie:
     - curl -o $EJ_FOLDER_WORK/junie.zip -L $RUNNER_DOWNLOAD_URL
     - unzip $EJ_FOLDER_WORK/junie.zip -d $EJ_FOLDER_WORK
     - printenv
-    - ln -s /builds/workspace/.matterhorn/out ./artifacts # symlink to logs dir to export it as artifacts
+    - ln -s /builds/workspace/.matterhorn ./artifacts # symlink to logs dir to export it as artifacts
     - $EJ_FOLDER_WORK/junie/bin/junie
     - git status
     - echo "===== [STAGE] Save Junie Summary ====="
