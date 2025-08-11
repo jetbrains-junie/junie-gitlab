@@ -3,6 +3,7 @@ workflow:
     - if: $CI_PIPELINE_SOURCE == "api"
 
 variables:
+  ENV_FILE: "env_vars.env"
   DRY_RUN: "false"
   GIT_DEPTH: 1
 
@@ -20,7 +21,55 @@ before_script:
   - export EJ_FOLDER_AGENT_CACHES=$(realpath $EJ_FOLDER_WORK)
   - export EJ_IDE_NAME=IdeaUltimate # TODO: set dynamically
   - export EJ_RUN_AS_ROOT=false
-  - export RUNNER_DOWNLOAD_URL="https://github.com/jetbrains-junie/junie/releases/download/252.1/junie-cloud-eap-251.252.1-linux-amd64.zip"
+  - export RUNNER_DOWNLOAD_URL="https://github.com/jetbrains-junie/junie/releases/download/275.1/junie-cloud-eap-251.275.1-linux-amd64.zip"
+  - |
+    if [ -n "$ISSUE_ID" ]; then
+      export JUNIE_BRANCH="junie-issue-$ISSUE_ID-$CI_PIPELINE_ID"
+      export JUNIE_COMMIT_MSG="[Junie] Automated changes for issue #$ISSUE_ID"
+    else
+      export SHORT_REF=$(echo $CI_COMMIT_REF_NAME | cut -c1-8)
+      export JUNIE_BRANCH="junie-$SHORT_REF"
+      export JUNIE_COMMIT_MSG="[Junie] Automated changes ($SHORT_REF)"
+    fi
+  - sudo apt-get update
+  - sudo apt-get install -y openjdk-17-jdk git rsync sed gettext jq || true
+  - mkdir -p $EJ_FOLDER_WORK
+  - curl -o $EJ_FOLDER_WORK/junie.zip -L $RUNNER_DOWNLOAD_URL
+  - unzip $EJ_FOLDER_WORK/junie.zip -d $EJ_FOLDER_WORK
+  - printenv
+  - printenv  > $ENV_FILE
+
+
+after_script:
+  - |
+    while IFS='=' read -r key value; do
+      [[ -z "$key" ]] && continue
+
+      if [[ "$key" =~ ^[a-zA-Z_][a-zA-Z0-9_]*$ ]]; then
+        if [ -z "${!key+x}" ]; then
+          export "$key"="$value" || continue
+        fi
+      fi
+    done < "$ENV_FILE"
+  - rm $ENV_FILE
+  - export JUNIE_SUMMARY="$(jq -r '.content.output' "$DOT_MATTERHORN"/*issue_md.*swe_patch*)" || true
+  - export JUNIE_SUMMARY_ESCAPED=$(printf "%s" "$JUNIE_SUMMARY" | jq -R -c . | sed 's/^"\(.*\)"$/\1/') || true
+  - |
+    if [ "$DRY_RUN" != "true" ]; then
+      EJ_RUNNER_INFO_DATA=$(echo "$EJ_RUNNER_INFO" \
+        | sed 's/%\([^%]*\)%/\$\{\1\}/g' \
+        | envsubst)
+    
+      echo "$EJ_RUNNER_INFO_DATA"
+      curl -v -L --request POST "${APP_API_URL}/runner/results" \
+        --header "X-Gitlab-Token: $APP_TOKEN" \
+        --header "Content-Type: application/json" \
+        --data "$EJ_RUNNER_INFO_DATA"
+    else
+      echo "DRY_RUN is true, skip sending"
+    fi
+  - mkdir -p "$CI_PROJECT_DIR/logs"
+  - cp -r "$DOT_MATTERHORN"/* "$CI_PROJECT_DIR/logs/"
 
 stages:
   - build
@@ -31,13 +80,6 @@ run_junie:
   script:
     - echo "===== [STAGE] Setup & Run Junie ====="
     - echo "template - $MR_DESCRIPTION"
-    - sudo apt-get update
-    - sudo apt-get install -y openjdk-17-jdk curl bash libgbm1 git telnet nano iputils-ping nodejs flake8 jq gawk git-lfs gettext tree || true
-    - mkdir -p $EJ_FOLDER_WORK
-    - curl -o $EJ_FOLDER_WORK/junie.zip -L $RUNNER_DOWNLOAD_URL
-    - unzip $EJ_FOLDER_WORK/junie.zip -d $EJ_FOLDER_WORK
-    - printenv
-    - ln -s /builds/workspace/.matterhorn ./artifacts # symlink to logs dir to export it as artifacts
     - $EJ_FOLDER_WORK/junie/bin/junie
     - git status
     - echo "===== [STAGE] Save Junie Summary ====="
@@ -47,9 +89,6 @@ run_junie:
         ls -la $DOT_MATTERHORN
         exit 1
       fi
-    - export JUNIE_SUMMARY="$(cat $DOT_MATTERHORN/*issue_md.*swe_patch* | jq -r '.content.output')"
-    - export JUNIE_SUMMARY_ESCAPED=$(printf "%s" "$JUNIE_SUMMARY" | awk '{printf "%s\\n", $0}' | sed 's/\\n$//')
-    - echo "output is $JUNIE_SUMMARY_ESCAPED"
     - echo "===== [STAGE] Restore or Remove .idea ====="
     - |
       if git ls-tree -d HEAD .idea | grep "\.idea" >/dev/null 2>&1; then
@@ -70,20 +109,11 @@ run_junie:
     - git config --global user.name "Junie"
     - git config --global user.email "Junie@jetbrains.com"
     - git config --global --add safe.directory "$CI_PROJECT_DIR"
-    - |
-      if [ -n "$ISSUE_ID" ]; then
-        export JUNIE_BRANCH="junie-issue-$ISSUE_ID-$CI_PIPELINE_ID"
-        export JUNIE_COMMIT_MSG="[Junie] Automated changes for issue #$ISSUE_ID"
-      else
-        export SHORT_REF=$(echo $CI_COMMIT_REF_NAME | cut -c1-8)
-        export JUNIE_BRANCH="junie-$SHORT_REF"
-        export JUNIE_COMMIT_MSG="[Junie] Automated changes ($SHORT_REF)"
-      fi
     - git checkout -b "$JUNIE_BRANCH" || git checkout "$JUNIE_BRANCH"
     # - git branch --set-upstream-to=origin/"$JUNIE_BRANCH" || true
     # - git pull --rebase --strategy=recursive -X ours
     - git status
-    - git add -A
+    - git add -A :!$ENV_FILE
     - |
       if ! git diff --cached --quiet; then
         git commit -m "$JUNIE_COMMIT_MSG"
@@ -96,24 +126,9 @@ run_junie:
       else
         echo "No changes to commit."
       fi
-    - echo "===== [STAGE] Create Merge Request ====="
-    - |
-      if [ "$DRY_RUN" != "true" ]; then
-        curl --request POST "${CI_API_V4_URL}/projects/$CI_PROJECT_ID/merge_requests" \
-          --header "Authorization: Bearer $APP_TOKEN" \
-          --form "source_branch=$JUNIE_BRANCH" \
-          --form "target_branch=$CI_COMMIT_REF_NAME" \
-          --form "title=[Junie]: $EJ_TASK_NAME" \
-          --form "description=$(echo "$MR_DESCRIPTION" | sed 's/%\([^%]*\)%/\$\1/g' | envsubst)" \
-          --form "remove_source_branch=true" \
-          --form "squash=true"
-      else
-        echo "DRY_RUN is true, skipping MR creation."
-      fi
-    - cp -r $DOT_MATTERHORN .matterhorn
   artifacts:
-    name: "ide-logs"
+    name: "junie-logs"
     paths:
-      - ./artifacts/*
+      - logs/**
     expire_in: 1 day
     when: always
