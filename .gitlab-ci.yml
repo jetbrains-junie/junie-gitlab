@@ -43,10 +43,14 @@ before_script:
 after_script:
   - |
     while IFS='=' read -r key value; do
-      if [ -z "${!key+x}" ]; then
-        export "$key"="$value"
+      [[ -z "$key" ]] && continue
+
+      if [[ "$key" =~ ^[a-zA-Z_][a-zA-Z0-9_]*$ ]]; then
+        if [ -z "${!key+x}" ]; then
+          export "$key"="$value" || continue
+        fi
       fi
-    done < $ENV_FILE
+    done < "$ENV_FILE"
   - rm $ENV_FILE
   - export JUNIE_SUMMARY="$(jq -r '.content.output' "$DOT_MATTERHORN"/*issue_md.*swe_patch*)" || true
   - export JUNIE_SUMMARY_ESCAPED=$(printf "%s" "$JUNIE_SUMMARY" | jq -R -c . | sed 's/^"\(.*\)"$/\1/') || true
