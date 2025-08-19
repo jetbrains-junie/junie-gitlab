@@ -33,7 +33,23 @@ before_script:
     fi
   - sudo apt-get update
   - sudo apt-get install -y openjdk-17-jdk git rsync sed gettext jq || true
+  - export EJ_FOLDER_UPLOADS="$EJ_FOLDER_WORK/uploads"
   - mkdir -p $EJ_FOLDER_WORK
+  - rm -rf "$EJ_FOLDER_UPLOADS" || true
+  - mkdir -p "$EJ_FOLDER_UPLOADS"
+  - |
+    if [ -n "$EJ_UPLOAD_URLS" ]; then
+      IFS=';' read -ra URLS <<< "$EJ_UPLOAD_URLS"
+      for url in "${URLS[@]}"; do
+        full_url="${CI_API_V4_URL}/projects/${CI_PROJECT_ID}${url}"
+        filename=$(basename "$url")
+        target_path="$EJ_FOLDER_UPLOADS/$filename"
+        echo "Downloading: $full_url -> $target_path"
+        curl --fail --header "Authorization: Bearer $APP_TOKEN" \
+             -o "$target_path" "$full_url"
+      done
+    fi
+  - export EJ_TASK="$(echo "$EJ_TASK" | sed 's/%\([^%]*\)%/\$\1/g' | envsubst)"
   - curl -o $EJ_FOLDER_WORK/junie.zip -L $RUNNER_DOWNLOAD_URL
   - unzip $EJ_FOLDER_WORK/junie.zip -d $EJ_FOLDER_WORK
   - printenv
