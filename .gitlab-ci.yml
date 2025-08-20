@@ -21,7 +21,7 @@ before_script:
   - export EJ_FOLDER_AGENT_CACHES=$(realpath $EJ_FOLDER_WORK)
   - export EJ_IDE_NAME=IdeaUltimate # TODO: set dynamically
   - export EJ_RUN_AS_ROOT=false
-  - export RUNNER_DOWNLOAD_URL="https://github.com/jetbrains-junie/junie/releases/download/289.1/junie-cloud-business-251.289.1-linux-amd64.zip"
+  - export RUNNER_DOWNLOAD_URL="https://github.com/jetbrains-junie/junie/releases/download/301.1/junie-cloud-business-251.301.1-linux-amd64.zip"
   - |
     if [ -n "$ISSUE_ID" ]; then
       export JUNIE_BRANCH="junie-issue-$ISSUE_ID-$CI_PIPELINE_ID"
