@@ -26,7 +26,7 @@
 1. Copy the file `.gitlab-ci.yml` to your project in GitLab
 
 ## GitLab configuration
-1. Issue access token (`Project > Settings > Access token` or `User settings > Access tokens`)
+1. Issue access token (`Project > Settings > Access token` or `User settings > Access tokens`). Role: `Owner`.
    - Call the token `junie` to have autocompletion in the UI.
    - Scope: `api, read_api, read_repository, write_repository`
 2. Configure a webhook on the GitLab side:
