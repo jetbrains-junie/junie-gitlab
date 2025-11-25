@@ -30,7 +30,7 @@
    - Call the token `junie` to have autocompletion in the UI.
    - Scope: `api, read_api, read_repository, write_repository`
 2. Configure a webhook on the GitLab side:
-   - Go to Project > Settings > CI/CD > `Add new webhook`
+   - Go to Project > Settings > Webhooks > `Add new webhook`
    - Set URL pointing on your local (using reverse proxy, e.g. ngrok) or remote junie-gitlab instance: `https://HOST/api/public/gitlab/webhooks`
    - Enter your token to the `Secret token` field
    - Enable at least `Comment events`
