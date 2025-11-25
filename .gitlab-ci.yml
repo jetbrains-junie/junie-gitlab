@@ -1,4 +1,3 @@
-
 workflow:
   rules:
     - if: $CI_PIPELINE_SOURCE == "api"
@@ -20,7 +19,7 @@ before_script:
   - export EJ_FOLDER_AGENT_CACHES=$(realpath $EJ_FOLDER_WORK)
   - export EJ_IDE_NAME=None
   - export EJ_RUN_AS_ROOT=false
-  - export RUNNER_DOWNLOAD_URL="https://github.com/jetbrains-junie/junie/releases/download/411.1/junie-cloud-business-251.411.1-linux-amd64.zip"
+  - export RUNNER_DOWNLOAD_URL="https://github.com/jetbrains-junie/junie/releases/download/527.1/junie-eap-business-527.1-linux-amd64.zip"
   - |
     if [ -n "$ISSUE_ID" ]; then
       export JUNIE_BRANCH="junie-issue-$ISSUE_ID-$CI_PIPELINE_ID"
