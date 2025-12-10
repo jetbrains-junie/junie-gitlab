@@ -9,7 +9,7 @@
 2. Run the container with the required environment variable:
    ```
    docker run -d \
-     -e INGRAZZIO_TOKEN=your_token_here \
+     -e JUNIE_API_KEY=your_token_here \
      -e GITLAB_HOST=gitlab_host \
      -p 8080:8080 \
      registry.jetbrains.team/p/matterhorn/public/junie-gitlab:latest
@@ -17,7 +17,7 @@
 
 
 ## Configuration
-- `INGRAZZIO_TOKEN`: (Required) Your authentication token for the JetBrains Auth service
+- `JUNIE_API_KEY`: (Required) Your authentication token for Junie. Get token [here](https://junie.labs.jb.gg/).
 - `GITLAB_HOST`: (Required) Your organization's GitLab host (e.g., `https://gitlab.com`)
 - `GITLAB_IGNORE_CERTIFICATE_ERRORS`: (Optional) Set to `true` to ignore SSL certificate errors when connecting to GitLab. Default is `false`.
 - `GITLAB_PIPELINE_CONFIGURATION_PATH`: (Optional) Path to the GitLab pipeline configuration file. Default is `.gitlab-ci.yml`.
