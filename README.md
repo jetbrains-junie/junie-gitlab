@@ -18,7 +18,7 @@
 
 ## Configuration
 
-- `JUNIE_API_KEY`: (Required) Your authentication token for the Junie
+- `JUNIE_API_KEY`: (Required) Your authentication token for the Junie. Get token [here](https://junie.jetbrains.com/). 
 - `GITLAB_HOST`: (Required) Your organization's GitLab host (e.g., `https://gitlab.com`)
 - `GITLAB_IGNORE_CERTIFICATE_ERRORS`: (Optional) Set to `true` to ignore SSL certificate errors when connecting to
   GitLab. Default is `false`.
