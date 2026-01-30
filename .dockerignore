@@ -1,0 +1,8 @@
+# Exclude local junk from Docker build context
+node_modules
+dist
+npm-debug.log*
+yarn.lock
+*.log
+.DS_Store
+.env

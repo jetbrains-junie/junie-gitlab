@@ -1,0 +1,29 @@
+{
+  "name": "gitlab-cli-wrapper",
+  "version": "0.1.0",
+  "private": true,
+  "description": "",
+  "license": "Apache-2.0",
+  "type": "module",
+  "bin": {
+    "gitlab-runner-image": "dist/cli.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "clean": "rm -rf dist",
+    "start": "node dist/cli.js"
+  },
+  "dependencies": {
+    "@gitbeaker/rest": "^43.8.0",
+    "commander": "^12.1.0",
+    "simple-git": "^3.30.0",
+    "winston": "^3.19.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.7.4",
+    "typescript": "^5.6.3"
+  }
+}

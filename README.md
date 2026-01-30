@@ -1,74 +1,66 @@
-# Junie GitLab Application
+# GitLab CLI Wrapper
 
-## Docker Installation
+Wrapper for Junie CLI for GitLab environment.
 
-1. Pull the Docker image:
-   ```
-   docker pull registry.jetbrains.team/p/matterhorn/public/junie-gitlab:latest
-   ```
+## Setup
 
-2. Run the container with the required environment variable:
-   ```
-   docker run -d \
-     -e JUNIE_API_KEY=your_token_here \
-     -e GITLAB_HOST=gitlab_host \
-     -p 8080:8080 \
-     registry.jetbrains.team/p/matterhorn/public/junie-gitlab:latest
-   ```
+Before using this it's necessary to set a few environment variables in a current GitLab project:
 
-## Configuration
++ `JUNIE_API_KEY` – a permanent Junie API key. May be found at [https://junie.jetbrains.com/cli](https://junie.jetbrains.com/cli)
++ `GITLAB_TOKEN_FOR_JUNIE` - GitLab API token with `api` and `write_repository` scopes.
+If you use the auto-cleanup feature (see below), you'll need to set its role to "Owner" (otherwise it won't be able to delete finished jobs).
 
-- `JUNIE_API_KEY`: (Required) Your authentication token for the Junie. Get token [here](https://junie.jetbrains.com/). 
-- `GITLAB_HOST`: (Required) Your organization's GitLab host (e.g., `https://gitlab.com`)
-- `GITLAB_IGNORE_CERTIFICATE_ERRORS`: (Optional) Set to `true` to ignore SSL certificate errors when connecting to
-  GitLab. Default is `false`.
-- `GITLAB_PIPELINE_CONFIGURATION_PATH`: (Optional) Path to the GitLab pipeline configuration file. Default is
-  `.gitlab-ci.yml`.
+> If you're using GitLab 17.1+ (especially if it's gitlab.com – probably it will also be necessary to manually allow setting pipeline variables: open "CI/CD Settings" -> "Variables" and make sure that NOT the option "No one allowed" is chosen there)
 
-## Repository preparation
+When all the variables are set, you can add a `.gitlab-ci.yml` file:
 
-1. Copy the file `.gitlab-ci.yml` to your project in GitLab
++ If you don't have one yet, you can use [our template](./script-sample.yaml)
++ If you have one, just add the stages `junie-init` and `junie-run` from [our template](./script-sample.yaml)
 
-## GitLab configuration
+### Additional parameters
 
-1. Issue access token (`Project > Settings > Access token` or `User settings > Access tokens`). Role: `Owner`.
-    - Call the token `junie` to have autocompletion in the UI like `@junie`.
-    - Scope: `api, read_api, read_repository, write_repository`
-2. Configure a webhook on the GitLab side:
-    - Go to Project > Settings > CI/CD > `Add new webhook`
-    - Set URL pointing on your local (using reverse proxy, e.g. ngrok) or remote junie-gitlab instance:
-      `https://HOST/api/public/gitlab/webhooks`
-    - Enter your token to the `Secret token` field
-    - Enable at least `Comment events`
+For the stage `junie-run` you can also set the following environment variables to customize the behavior:
 
-## Usages
+| Variable                    | Default value | Description                                                              |
+|-----------------------------|---------------|--------------------------------------------------------------------------|
+| `JUNIE_BOT_TAGGING_PATTERN` | junie         | RegExp for a bot's name for mentioning Junie                             |
+| `JUNIE_VERSION`             | `null`        | Version of Junie CLI to use. If is not set – the latest one will be used |
+| `JUNIE_MODEL`               | `null`        | Specific Junie model to use (e.g., `claude-sonnet-4-5-20250929`)         |
+| `USE_MCP`                   | `false`       | Enable GitLab MCP tools for inline code review comments                  |
 
-Junie responds to mentions in comments. Use `@junie` (or mention the project bot user) to trigger the agent.
 
-### In Issues
+## Commands
 
-1. Open an Issue with a description of the task
-2. Add a comment mentioning Junie: `@junie please implement this`
-3. Junie will:
-    - React with 👍 to confirm the request was received
-    - Reply with "Hey, it's Junie by JetBrains! I started processing your request"
-    - Run a CI pipeline to execute the task
-    - Create a new Merge Request with the changes
-    - Post a comment with a link to the created MR
+### `init`
 
-### In Merge Requests
+Initializes Junie CLI in this repository.
+This job will generate a new webhook that triggers a pipeline to handle users' requests to Junie.
+Normally it must be executed once per repository.
 
-1. Open a Merge Request
-2. Add a comment (general or on specific code lines) mentioning Junie: `@junie fix this`
-3. Junie will:
-    - React with 👍 to confirm the request was received
-    - Reply with a processing notification
-    - Run a CI pipeline to address the feedback
-    - Create a new Merge Request with the fixes
-    - Post a comment with a link to the created MR
+**Options:**
+- `-V, --verbose` - Enable debug logging (default: false)
 
-### Tips
 
-- You can mention Junie in code review comments on specific lines — Junie will understand the context
-- Multiple comments in the same MR discussion are batched together
-- The task description is taken from the Issue/MR description + your comment text
+### `run`
+
+Run Junie CLI.
+
+**Options:**
+- `-C, --cleanup` - Auto clean-up (delete finished jobs) after idle run (default: false)
+- `-V, --verbose` - Enable debug logging (default: false)
+- `-p, --prompt <prompt>` - Custom prompt for Junie execution
+- `-M, --mr-mode <mode>` - Merge requests processing mode (choices: "append", "new", default: "new")
+  - `append` - Append to existing merge requests by pushing changes to the same branch
+  - `new` - Create new merge requests
+
+**Code Review Feature:**
+
+To trigger code review, you can either:
+1. **Manual trigger**: Write "code-review" in a comment to a merge request (requires `junie-init` to be run first)
+2. **Automatic trigger**: Configure a separate CI/CD job that runs on every MR update
+
+When the "code-review" phrase is detected, Junie will:
+- Get the Merge Request diff
+- Review the code according to repository style and best practices
+- Post inline comments with suggestions using GitLab MCP tools (if available)
+- Provide a comprehensive review summary

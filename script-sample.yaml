@@ -1,0 +1,102 @@
+stages:
+  - junie
+
+junie-init:
+  stage: junie
+  image: registry.jetbrains.team/p/matterhorn/public/junie-gitlab-wrapper:latest
+  script:
+    - node /app/dist/cli.js init --verbose
+  when: manual
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "api"
+      when: never
+    - if: $CI_COMMIT_BRANCH == "main"
+      changes:
+        - .gitlab-ci.yml
+      when: manual
+
+junie-run:
+  stage: junie
+  image: registry.jetbrains.team/p/matterhorn/public/junie-gitlab-wrapper:latest
+  script:
+    - node /app/dist/cli.js run --cleanup --verbose
+  after_script:
+    - mkdir -p junie-artifacts/working-directory
+    - mkdir -p junie-artifacts/logs
+    - mkdir -p junie-artifacts/sessions
+    - cp -R /junieCache/. ./junie-artifacts/working-directory/ 2>/dev/null || true
+    - cp -R ~/.junie/logs/. ./junie-artifacts/logs/ 2>/dev/null || true
+    - cp -R ~/.junie/sessions/. ./junie-artifacts/sessions/ 2>/dev/null || true
+  rules:
+    # Only run for comment events (when someone writes @junie)
+    - if: $CI_PIPELINE_SOURCE == "api" && $EVENT_KIND == "note"
+      when: always
+    - when: never
+  variables:
+    JUNIE_BOT_TAGGING_PATTERN: "junie[-a-zA-Z0-9]*"
+  artifacts:
+    paths:
+      - junie-artifacts/working-directory
+      - junie-artifacts/logs
+      - junie-artifacts/sessions
+    expire_in: 1 week
+    when: always
+
+# Optional: Automatic code review on every MR update
+# Uncomment this job to enable automatic code review
+junie-auto-code-review:
+  stage: junie
+  image: registry.jetbrains.team/p/matterhorn/public/junie-gitlab-wrapper:latest
+  script:
+    - node /app/dist/cli.js run --prompt "code-review" --verbose
+  after_script:
+    - mkdir -p junie-artifacts/working-directory
+    - mkdir -p junie-artifacts/logs
+    - mkdir -p junie-artifacts/sessions
+    - cp -R /junieCache/. ./junie-artifacts/working-directory/ 2>/dev/null || true
+    - cp -R ~/.junie/logs/. ./junie-artifacts/logs/ 2>/dev/null || true
+    - cp -R ~/.junie/sessions/. ./junie-artifacts/sessions/ 2>/dev/null || true
+  rules:
+    # Only run for MR events, skip on close or merge
+    - if: $CI_PIPELINE_SOURCE == "api" && $EVENT_KIND == "merge_request" && $MR_EVENT_ACTION != "close" && $MR_EVENT_ACTION != "merge"
+      when: always
+    - when: never
+  variables:
+   USE_MCP: "true"
+   JUNIE_MODEL: "claude-sonnet-4-5-20250929"  # Use Claude instead of Gemini for MCP compatibility
+  artifacts:
+    paths:
+      - junie-artifacts/working-directory
+      - junie-artifacts/logs
+      - junie-artifacts/sessions
+    expire_in: 1 week
+    when: always
+
+# Optional: Additional custom job with different prompt
+# junie-security-check:
+#   stage: junie
+#   image: registry.jetbrains.team/p/matterhorn/public/junie-gitlab-wrapper:latest
+#   script:
+#     - node /app/dist/cli.js run --prompt "Check for security vulnerabilities in the changes" --verbose
+#   after_script:
+#     - mkdir -p junie-artifacts/working-directory
+#     - mkdir -p junie-artifacts/logs
+#     - mkdir -p junie-artifacts/sessions
+#     - cp -R /junieCache/. ./junie-artifacts/working-directory/ 2>/dev/null || true
+#     - cp -R ~/.junie/logs/. ./junie-artifacts/logs/ 2>/dev/null || true
+#     - cp -R ~/.junie/sessions/. ./junie-artifacts/sessions/ 2>/dev/null || true
+#   rules:
+#     # Only run when MR is opened (not on updates)
+#     - if: $CI_PIPELINE_SOURCE == "api" && $EVENT_KIND == "merge_request" && $MR_EVENT_ACTION == "open"
+#       when: always
+#     - when: never
+#   variables:
+#     USE_MCP: "true"
+#   artifacts:
+#     paths:
+#       - junie-artifacts/working-directory
+#       - junie-artifacts/logs
+#       - junie-artifacts/sessions
+#     expire_in: 1 week
+#     when: always
+
